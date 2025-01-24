@@ -88,3 +88,5 @@ client_scripts {
 ### Consider code obfuscation for critical client-side scripts
 
 Remember: The best protection is keeping sensitive logic server-side where it cannot be accessed by clients.
+
+## Overall to stop this from happening you simply can just upload your scripts to cfx keymaster and now all your files are encryped :)
