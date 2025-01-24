@@ -1,92 +1,111 @@
 # FiveM Resource Protection Guide
-
-This guide explains methods to protect your FiveM resources from unauthorized access and copying.
+A comprehensive guide on protecting FiveM resources from unauthorized access, including anti-dump measures.
 
 ## Basic Resource Protection
 
 ### Using Wildcards in Manifest
-The manifest file (`fxmanifest.lua`) can use wildcards to avoid listing exact filenames:
-
 ```lua
 client_scripts {
-    "client/*.lua"  -- Loads all .lua files in client folder
+   "client/*.lua"  -- Loads all .lua files in client folder
 }
 
 -- OR for nested folders:
 client_scripts {
-    "client/**/*.lua"  -- Loads from all subfolders
+   "client/**/*.lua"  -- Loads from all subfolders
 }
 ```
 
-## Load Order Control
-### When scripts depend on each other, maintain load order while using protection:
+## Anti-Dump Implementation
+### Required Files:
+1. public.lua:
 
 ```lua
--- Standard loading:
+local WaitUntilLoaded = true
+
+RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
+    CreateThread(function()
+        while WaitUntilLoaded do Wait(0) end
+        TriggerEvent('YourTriggerNameInsideClient.lua')
+    end)
+end)
+
+AddEventHandler('onResourceStart', function(resource)
+    if resource == GetCurrentResourceName() then
+        Wait(100)
+        CreateThread(function()
+            while WaitUntilLoaded do Wait(0) end
+            TriggerEvent('YourTriggerNameInsideClient.lua')
+        end)
+    end
+end)
+
+function LoadSuccess()
+    WaitUntilLoaded = false
+end
+
+exports('LoadSuccess', LoadSuccess)
+```
+
+2. Add to end of client.lua:
+
+```lua
+CreateThread(function() 
+    exports['your-resource-name']:LoadSuccess() 
+end)
+```
+
+## Important Notes:
+- Don't use same event names across resources
+- Recommended format: resource-name:client:OnPlayerLoaded
+- Consider network changes that may trigger script reloads
+- Use queue system for timeout issues
+- Keep resources separate in anti-dump configs
+
+## Standard Protection Methods
+### Load Order Control
+
+```lua
 client_scripts {
     "client/main.lua",      -- Loads first
     "client/secondary.lua"   -- Loads second
 }
 
--- With partial name hiding:
+-- With partial hiding:
 client_scripts {
-    "client/main.l*a",      -- Still loads first
-    "client/secondary.l*a"   -- Still loads second
+    "client/main.l*a",      
+    "client/secondary.l*a"   
 }
 ```
 
-## Folder Structure Protection
-### Example of protected folder structure:
+### Protected Folder Structure
 
 ```lua
 ResourceName/
 ├── fxmanifest.lua
-├── j8k2m/           -- Client folder (instead of "client")
-│   ├── x7d9f.lua   -- Main file
-│   └── y8h3k.lua   -- Secondary file
-└── p4n5r/          -- Server folder (instead of "server")
+├── j8k2m/          
+│   ├── x7d9f.lua   
+│   └── y8h3k.lua   
+└── p4n5r/          
     └── q2w3e.lua
 ```
 
-## Best Practices
+### Best Practices
+1. Move sensitive logic server-side
+2. Use randomized folder/file names
+3. Break code into multiple files
+4. Avoid common names
+5. Use nested structures
+6. Implement authentication
+7. Use NUI blocker
+8. Implement proper loading checks
 
-### Move sensitive logic to server-side
-### Use randomized folder and file names
-### Break code into multiple files
-### Avoid common names like "main" or "utils"
-### Use nested folder structures
-### Implement proper authentication for server-client communication
+### Additional Security
+- Use HTTPS/TLS
+- Implement rate limiting
+- Server-side validation
+- Auth/authorization
+- Code obfuscation
+- Queue systems for timeouts
+- Network change handling
 
-## Implementation Tips
-### Basic Folder Protection
-
-```lua
--- In fxmanifest.lua
-client_scripts {
-    "ElkQlJ9REJ/*.lua"  -- Random folder name
-}
-
-server_scripts {
-    "cJbaXhuIp1/*.lua"  -- Random folder name
-}
-```
-
-### Nested Structure
-
-```lua
-client_scripts {
-    "client/*/*.lua"     -- Matches files in subfolders
-    "client/**/*.lua"    -- Matches files in all nested folders
-}
-```
-
-## Additional Security Measures
-### Use HTTPS/TLS for network communications
-### Implement rate limiting
-### Validate all input server-side
-### Use proper authentication and authorization
-### Consider code obfuscation for critical client-side scripts
-
-Remember: The best protection is keeping sensitive logic server-side where it cannot be accessed by clients.
-
-## Overall to stop this from happening you simply can just upload your scripts to cfx keymaster and now all your files are encryped :)
+Remember: Combine these methods with anti-dump protection for maximum security.
